@@ -1,16 +1,57 @@
-@Library('jenkins-shared-library@main') _
+pipeline {
+    agent {
+        node { label 'AGENT-1' }
+    }
 
-def configMap = [
-    project   : "roboshop",
-    component : "user"
-]
+    environment {
+        REGION    = "us-east-1"
+        ACC_ID    = "211125615103"
+        PROJECT   = "roboshop"
+        COMPONENT = "user"
+    }
 
-def branchName = env.BRANCH_NAME ?: ''
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+        disableConcurrentBuilds()
+    }
 
-echo "BRANCH_NAME = ${branchName}"
+    parameters {
+        string(name: 'appVersion', description: 'Which app version you want to deploy')
+        choice(name: 'deploy_to', choices: ['dev', 'qa', 'prod'], description: 'Pick the environment')
+    }
 
-if (!branchName.equalsIgnoreCase('main')) {
-    nodejsEKSPipeline(configMap)
-} else {
-    echo "Please proceed with PROD process"
+    stages {
+        
+        stage('Deploy') {
+            steps {
+                script{
+                    withAWS(region:'us-east-1',credentials:'aws-creds') {
+                        sh """
+                            aws eks update-kubeconfig --region ${REGION} --name ${PROJECT}-${params.deploy_to}
+                            kubectl get nodes
+                        """
+                    }
+                }
+            }
+        }
+        
+    }
+
+        
+
+    post{
+        always{
+            echo 'I will always say Hello again!'
+            cleanWs()
+        }
+        success {
+            echo 'I will run if success'
+        }
+        failure {
+            echo 'I will run if failure'
+        }
+        aborted {
+            echo 'pipeline is aborted'
+        }
+    }
 }
