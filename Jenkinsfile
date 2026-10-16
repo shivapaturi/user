@@ -4,7 +4,7 @@ def configMap = [
     project : "roboshop",
     component : "user"
 ]
-if ( !env.BRANCH_NAME.equalsIgnoreCase('main') ){ // This means any branch except main.
+if (!(env.BRANCH_NAME ?: '').equalsIgnoreCase('main')) {// This means any branch except main.
     nodejsEKSPipeline(configMap) // by  default it will call, call fuction inside this pipeline 
 }
 else{
